@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+  <title>Will you be my Valentine?</title>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&family=Patrick+Hand&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;}
+
+    body{
+      min-height:100vh;
+      display:flex; align-items:center; justify-content:center;
+      background:radial-gradient(circle at top,#fde8f2,#fbc8df);
+      font-family:'Georgia',serif;
+      overflow-x:hidden; overflow-y:auto;
+      padding:20px 16px;
+      position:relative;
+    }
+
+    /* ── BEAR GIFS ── */
+    .bg-gif-left,.bg-gif-right{
+      position:fixed; top:50%; transform:translateY(-50%);
+      width:150px; height:150px; opacity:0.75;
+      pointer-events:none; z-index:0;
+    }
+    .bg-gif-left{left:12%;} .bg-gif-right{right:12%;}
+    .bg-gif-left img,.bg-gif-right img{width:100%;height:100%;object-fit:contain;}
+
+    /* ── DECORATIONS ── */
+    .decorations{position:fixed;inset:0;pointer-events:none;z-index:4;overflow:hidden;}
+    .deco-item{position:absolute;opacity:0.85;}
+    .balloon{font-size:40px;animation:floatBalloon 8s ease-in-out infinite;}
+    .animal{animation:floatGentle 6s ease-in-out infinite;}
+    .animal-small{font-size:35px;} .animal-medium{font-size:50px;} .animal-large{font-size:65px;}
+    .balloon-small{font-size:30px;} .balloon-medium{font-size:45px;} .balloon-large{font-size:60px;}
+    @keyframes floatBalloon{0%,100%{transform:translateY(0)rotate(0)}50%{transform:translateY(-25px)rotate(5deg)}}
+    @keyframes floatGentle{0%,100%{transform:translateY(0)translateX(0)}50%{transform:translateY(-15px)translateX(5px)}}
+
+    /* ── CONFETTI ── */
+    #confettiCanvas{position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:9999;}
+
+    /* ── CARDS STACK WRAPPER ── */
+    .cards-wrapper{
+      position:relative;
+      width:min(580px,85vw);
+      z-index:3;
+    }
+
+    /* Ghost cards peeking behind (stacked deck look) */
+    .ghost-card{
+      position:absolute;
+      left:0; right:0; top:0; bottom:0;
+      border-radius:24px;
+      pointer-events:none;
+    }
+    /* card1: ghost2 = rose card, ghost3 = lavender card */
+    #ghost2{
+      background:linear-gradient(145deg,#ffe4f2,#ffd0e8);
+      border:1px solid rgba(255,150,190,0.45);
+      box-shadow:0 12px 36px rgba(220,80,120,0.14);
+      transform:rotate(2.8deg) translateY(12px) scale(0.97);
+      z-index:1;
+    }
+    #ghost3{
+      background:linear-gradient(145deg,#eee0ff,#e2d0ff);
+      border:1px solid rgba(180,130,255,0.4);
+      box-shadow:0 12px 36px rgba(140,70,220,0.1);
+      transform:rotate(-2.4deg) translateY(22px) scale(0.94);
+      z-index:0;
+    }
+    /* card2: ghost3b = lavender card */
+    #ghost3b{
+      background:linear-gradient(145deg,#eee0ff,#e2d0ff);
+      border:1px solid rgba(180,130,255,0.4);
+      box-shadow:0 12px 36px rgba(140,70,220,0.1);
+      transform:rotate(2.2deg) translateY(12px) scale(0.97);
+      z-index:0;
+    }
+
+    /* ── BASE CARD ── */
+    .card{
+      width:100%; padding:22px 18px;
+      border-radius:24px; text-align:center;
+      position:relative; overflow:visible;
+      display:none; z-index:2;
+    }
+    #card1{
+      display:block;
+      background:linear-gradient(145deg,#fff5f8,#fff0e8,#fff5fb);
+      box-shadow:0 18px 60px rgba(220,80,120,0.2),0 4px 20px rgba(180,60,100,0.12),inset 0 1px 0 rgba(255,255,255,0.9);
+      border:1px solid rgba(255,180,200,0.5);
+    }
+    #card2{
+      background:linear-gradient(145deg,#fff0f8,#ffe8f2,#fff8f0);
+      box-shadow:0 18px 60px rgba(220,80,120,0.2),0 4px 20px rgba(180,60,100,0.12),inset 0 1px 0 rgba(255,255,255,0.9);
+      border:1px solid rgba(255,160,190,0.5);
+    }
+    #card3{
+      background:linear-gradient(145deg,#f8f0ff,#f0e8ff,#fff0f8);
+      box-shadow:0 18px 60px rgba(150,80,220,0.18),0 4px 20px rgba(120,60,180,0.12),inset 0 1px 0 rgba(255,255,255,0.9);
+      border:1px solid rgba(200,160,255,0.5);
+    }
+
+    /* card fall/appear */
+    @keyframes cardFall{0%{transform:translateY(0)rotate(0);opacity:1}100%{transform:translateY(130vh)rotate(12deg);opacity:0}}
+    @keyframes cardAppear{0%{transform:translateY(-50px)scale(0.95);opacity:0}100%{transform:translateY(0)scale(1);opacity:1}}
+    .card-fall{animation:cardFall 0.85s ease-in forwards;}
+    .card-appear{animation:cardAppear 0.6s ease-out forwards;}
+
+    /* ── KOALA ── */
+    .koala-peek{position:absolute;top:28%;left:-45px;width:58px;height:75px;z-index:2;}
+
+    /* ── TEDDY WRAP ── */
+    .teddy-wrap{position:relative;display:inline-block;width:100%;}
+
+    /* ── TEDDY BEAR SVG ── */
+    .art{
+      width:min(180px,70vw); margin:0 auto 8px; display:block;
+      filter:drop-shadow(0 8px 16px rgba(0,0,0,.18)) drop-shadow(0 4px 8px rgba(255,77,125,0.15));
+      animation:floatArt 3s ease-in-out infinite;
+      cursor:default;
+    }
+    /* Make art clickable as button - blue glow */
+    .art.clickable{
+      cursor:pointer;
+      filter:drop-shadow(0 0 10px rgba(100,180,255,0.65)) drop-shadow(0 8px 16px rgba(0,0,0,.18));
+    }
+    .art-container{display:flex;justify-content:center;align-items:center;margin-bottom:10px;}
+    @keyframes floatArt{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+    @keyframes blowKiss{0%{transform:scale(1)}50%{transform:scale(1.05)}100%{transform:scale(1)}}
+    .art.blowing-kisses{animation:blowKiss 0.8s ease-in-out infinite;}
+
+    /* heart+hands */
+    @keyframes offerHeart{0%{transform:translate(0,30px)scale(0.3);opacity:0.3}50%{transform:translate(0,-20px)scale(1.1);opacity:1}100%{transform:translate(0,30px)scale(0.3);opacity:0.3}}
+    @keyframes handLeft{0%,100%{opacity:0;transform:translate(30px,10px)rotate(0)}25%,75%{opacity:1;transform:translate(0,-10px)rotate(-15deg)}50%{opacity:1;transform:translate(-10px,-20px)rotate(-20deg)}}
+    @keyframes handRight{0%,100%{opacity:0;transform:translate(-30px,10px)rotate(0)}25%,75%{opacity:1;transform:translate(0,-10px)rotate(15deg)}50%{opacity:1;transform:translate(10px,-20px)rotate(20deg)}}
+    #animatedHeart{animation:offerHeart 4s ease-in-out infinite;transform-origin:center;}
+    #leftHand{animation:handLeft 4s ease-in-out infinite;transform-origin:center;}
+    #rightHand{animation:handRight 4s ease-in-out infinite;transform-origin:center;}
+
+    @keyframes kiss{0%{opacity:0;transform:translate(0,0)scale(0.5)}50%{opacity:1;transform:translate(var(--tx),var(--ty))scale(1)}100%{opacity:0;transform:translate(calc(var(--tx)*2),calc(var(--ty)*2))scale(0.3)}}
+    .kiss-particle{position:absolute;font-size:24px;pointer-events:none;animation:kiss 2s ease-out forwards;}
+
+    /* ── CLOUD SPEECH BUBBLE — sits beside bear face, same height, tail on cheek ── */
+    .cloud-bubble{
+      display:none;
+      position:absolute;
+      top: 42px;               /* moved up 20px */
+      left: calc(50% + 52px);
+      pointer-events:none;
+      z-index:10;
+      animation:cloudFloat 2s ease-in-out infinite;
+    }
+    .cloud-bubble svg{
+      width:130px;             /* smaller than before (was 160px) */
+      height:auto;
+      filter:drop-shadow(2px 3px 8px rgba(80,140,200,0.28));
+    }
+    .cloud-bubble-text{
+      position:absolute;
+      top:42%; left:54%;
+      transform:translate(-50%,-50%);
+      font-family:'Georgia',serif;
+      font-size:10px;
+      font-weight:800;
+      color:#1a4a7a;
+      white-space:nowrap;
+      text-align:center;
+      pointer-events:none;
+    }
+    @keyframes cloudFloat{
+      0%,100%{transform:translateY(0);}
+      50%{transform:translateY(-5px);}
+    }
+
+    /* ── H1 ── */
+    h1{font-size:clamp(22px,4vw,36px);margin:10px 0 14px;font-weight:700;color:#d32f2f;text-shadow:2px 2px 8px rgba(211,47,47,0.3);letter-spacing:0.5px;}
+
+    /* ── BUTTON ZONE ── */
+    .button-zone{position:relative;width:min(420px,92%);height:120px;margin:0 auto;touch-action:none;}
+    button{
+      position:absolute; top:50%; transform:translateY(-50%);
+      padding:13px 20px; font-size:16px; font-weight:800;
+      border-radius:999px; border:none;
+      box-shadow:0 10px 24px rgba(0,0,0,.14);
+      user-select:none; -webkit-tap-highlight-color:transparent;
+      transition:transform .12s ease,background .12s ease;
+    }
+    #yesBtn{left:18%;background:#ff3b7a;color:#fff;cursor:pointer;}
+    #yesBtn:hover{background:#ff1f68;}
+    #noBtn{left:62%;background:#e5e7eb;color:#111827;cursor:pointer;}
+
+    .hint{margin-top:8px;font-size:12px;opacity:.7;font-family:system-ui,sans-serif;}
+
+    /* ── RESULT ── */
+    .result{display:none;margin-top:14px;animation:popIn .35s ease;}
+    .result h2{font-size:clamp(26px,4vw,38px);margin:8px 0;color:#6a1b9a;font-weight:800;text-shadow:3px 3px 10px rgba(106,27,154,0.4);letter-spacing:2px;}
+    .fireworks{width:min(300px,90vw);max-width:100%;margin:0 auto;display:block;border-radius:20px;box-shadow:0 8px 24px rgba(233,30,99,0.25);border:3px solid rgba(255,255,255,0.6);}
+    @keyframes popIn{from{transform:scale(.96);opacity:0}to{transform:scale(1);opacity:1}}
+
+    /* ── CARD 2 ── */
+    .bouquet-img{
+      width:min(220px,75vw);
+      max-height:250px;
+      object-fit:contain;
+      border-radius:16px;
+      margin:10px auto; display:block;
+      box-shadow:0 8px 24px rgba(220,80,120,0.3);
+      border:3px solid rgba(255,180,200,0.6);
+    }
+    /* For You row with petal beside it */
+    .for-you-row{
+      display:flex;align-items:center;justify-content:center;
+      gap:10px; margin:8px 0 4px; flex-wrap:wrap;
+    }
+    .for-you-text{
+      font-size:clamp(22px,3.5vw,34px);
+      color:#c2185b; font-weight:700;
+      text-shadow:1px 1px 6px rgba(194,24,91,0.3);
+    }
+
+    /* ── PETAL BUTTON (beside "For You" — looks like it fell from bouquet) ── */
+    .petal-btn{
+      display:none;
+      position:relative;
+      width:90px; height:52px;
+      cursor:pointer; border:none;
+      background:transparent; padding:0;
+      flex-shrink:0;
+      transform:rotate(-12deg);
+    }
+    .petal-btn.show{
+      display:flex; align-items:center; justify-content:center;
+      animation:petalFall 0.9s cubic-bezier(.25,.46,.45,.94) forwards;
+    }
+    @keyframes petalFall{
+      0%  {opacity:0;transform:translateY(-40px) rotate(20deg);}
+      40% {opacity:0.8;transform:translateY(6px) rotate(-18deg);}
+      70% {opacity:1;transform:translateY(-3px) rotate(-10deg);}
+      100%{opacity:1;transform:translateY(0) rotate(-12deg);}
+    }
+    /* gentle settling drift after landing */
+    .petal-btn.settled{
+      animation:petalSettle 3s ease-in-out infinite;
+    }
+    @keyframes petalSettle{
+      0%,100%{transform:rotate(-12deg) translateY(0);}
+      50%{transform:rotate(-8deg) translateY(-2px);}
+    }
+    .petal-svg{width:90px;height:52px;position:absolute;top:0;left:0;}
+    .petal-label{
+      position:relative; z-index:2;
+      font-size:9px; font-weight:800;
+      font-family:'Georgia',serif;
+      color:#5a001a;
+      text-align:center; line-height:1.25;
+      pointer-events:none;
+      letter-spacing:0.3px;
+    }
+
+    /* ── CARD 3 - NOTEBOOK LOVE LETTER ── */
+    .notebook{
+      position:relative;
+      background:#fefef2;
+      border-radius:4px 12px 12px 4px;
+      margin:10px 0;
+      box-shadow:3px 4px 18px rgba(0,0,0,0.12), inset 0 0 0 1px rgba(0,0,0,0.06);
+      overflow:hidden;
+      text-align:left;
+    }
+    /* Red margin line */
+    .notebook::before{
+      content:'';
+      position:absolute;
+      left:48px; top:0; bottom:0;
+      width:2px;
+      background:rgba(255,100,100,0.35);
+      z-index:1;
+    }
+    /* Spiral holes on left */
+    .notebook::after{
+      content:'';
+      position:absolute;
+      left:0; top:0; bottom:0; width:40px;
+      background:repeating-linear-gradient(
+        to bottom,
+        transparent 0px, transparent 28px,
+        rgba(180,180,180,0.25) 28px, rgba(180,180,180,0.25) 32px,
+        transparent 32px, transparent 60px
+      );
+      z-index:1;
+    }
+    .notebook-inner{
+      padding:18px 18px 18px 60px;
+      /* Ruled lines */
+      background:repeating-linear-gradient(
+        to bottom,
+        transparent 0px, transparent 31px,
+        rgba(150,180,220,0.25) 31px, rgba(150,180,220,0.25) 33px
+      );
+      background-size:100% 32px;
+    }
+    .notebook-title{
+      font-family:'Caveat',cursive;
+      font-size:clamp(20px,3vw,26px);
+      color:#c2185b;
+      font-weight:700;
+      text-align:center;
+      margin-bottom:12px;
+      margin-left:-12px;
+    }
+    .notebook-body{
+      font-family:'Caveat',cursive;
+      font-size:clamp(15px,2.2vw,18px);
+      color:#1a237e;
+      line-height:1.7;
+      white-space:pre-line;
+    }
+    .notebook-sign{
+      font-family:'Caveat',cursive;
+      font-size:clamp(15px,2.2vw,18px);
+      color:#880e4f;
+      font-weight:700;
+      text-align:right;
+      margin-top:12px;
+    }
+    /* Hole-punches decorative */
+    .hole{
+      position:absolute; left:12px;
+      width:18px; height:18px;
+      border-radius:50%;
+      background:#fde8f2;
+      border:2px solid rgba(180,180,180,0.4);
+      z-index:3;
+      box-shadow:inset 0 1px 3px rgba(0,0,0,0.15);
+    }
+
+    /* ── MOBILE ── */
+    @media(max-width:768px){
+      .cards-wrapper{width:95vw;}
+      .bg-gif-left{left:2%;width:110px;height:110px;}
+      .bg-gif-right{right:2%;width:110px;height:110px;}
+      .balloon-small{font-size:25px;} .balloon-medium{font-size:35px;} .balloon-large{font-size:45px;}
+      .animal-small{font-size:28px;} .animal-medium{font-size:38px;} .animal-large{font-size:50px;}
+      .button-zone{height:140px;}
+      #ghost2,#ghost3,#ghost3b{display:none;}
+    }
+    @media(max-width:480px){
+      .bg-gif-left,.bg-gif-right{width:85px;height:85px;}
+    }
+  </style>
+</head>
+<body>
+
+<!-- Bear GIFs -->
+<div class="bg-gif-left"><img id="leftGif" src="https://i.pinimg.com/originals/91/25/fc/9125fcf5c30e8f30e70650e059e265be.gif" alt=""></div>
+<div class="bg-gif-right"><img id="rightGif" src="https://media.tenor.com/4bV9ylEOWpgAAAAi/bubu-dudu-sseeyall.gif" alt=""></div>
+
+<canvas id="confettiCanvas"></canvas>
+
+<!-- Decorations -->
+<div class="decorations">
+  <div class="deco-item balloon balloon-medium" style="top:8%;left:5%;animation-delay:0s;color:#ff3b7a;">🎈</div>
+  <div class="deco-item animal animal-small"   style="top:6%;left:22%;animation-delay:0.5s;">🐰</div>
+  <div class="deco-item balloon balloon-small"  style="top:10%;left:68%;animation-delay:1.5s;color:#9c27b0;">🎈</div>
+  <div class="deco-item animal animal-medium"  style="top:8%;right:12%;animation-delay:1s;">🐱</div>
+  <div class="deco-item balloon balloon-medium" style="top:7%;right:2%;animation-delay:0.8s;color:#ffd700;">🎈</div>
+  <div class="deco-item animal animal-small"   style="top:28%;left:3%;animation-delay:1.2s;">🦊</div>
+  <div class="deco-item balloon balloon-large"  style="top:32%;right:5%;animation-delay:2s;color:#2196f3;">🎈</div>
+  <div class="deco-item animal animal-medium"  style="top:48%;left:2%;animation-delay:1.8s;">🐧</div>
+  <div class="deco-item balloon balloon-medium" style="top:52%;right:3%;animation-delay:0.6s;color:#ff4081;">❤️</div>
+  <div class="deco-item balloon balloon-small"  style="bottom:32%;left:4%;animation-delay:2.2s;color:#e91e63;">🎈</div>
+  <div class="deco-item animal animal-large"   style="bottom:35%;right:6%;animation-delay:1.4s;">🦄</div>
+  <div class="deco-item balloon balloon-medium" style="bottom:8%;left:2%;animation-delay:1.6s;color:#f44336;">🎈</div>
+  <div class="deco-item animal animal-small"   style="bottom:12%;left:18%;animation-delay:0.9s;">🐘</div>
+  <div class="deco-item animal animal-medium"  style="bottom:8%;right:28%;animation-delay:2.3s;">🦊</div>
+  <div class="deco-item balloon balloon-small"  style="bottom:6%;right:15%;animation-delay:1.7s;color:#9c27b0;">🎈</div>
+  <div class="deco-item animal animal-small"   style="bottom:10%;right:3%;animation-delay:0.7s;">🐧</div>
+</div>
+
+<div class="cards-wrapper">
+
+  <!-- Ghost cards behind card1 (stacked effect) -->
+  <div class="ghost-card" id="ghost2"></div>
+  <div class="ghost-card" id="ghost3"></div>
+
+  <!-- ══════ CARD 1 ══════ -->
+  <div class="card" id="card1">
+
+    <!-- Koala -->
+    <svg class="koala-peek" viewBox="0 0 100 120">
+      <defs><radialGradient id="kf1"><stop offset="0%" stop-color="#c0c0c0"/><stop offset="100%" stop-color="#a8a8a8"/></radialGradient></defs>
+      <ellipse cx="88" cy="50" rx="10" ry="7" fill="url(#kf1)" transform="rotate(15 88 50)"/>
+      <circle cx="86" cy="46" r="2.5" fill="#8d8d8d"/><circle cx="90" cy="45" r="2.5" fill="#8d8d8d"/><circle cx="88" cy="42" r="2" fill="#8d8d8d"/>
+      <ellipse cx="88" cy="70" rx="10" ry="7" fill="url(#kf1)" transform="rotate(20 88 70)"/>
+      <circle cx="86" cy="66" r="2.5" fill="#8d8d8d"/><circle cx="90" cy="65" r="2.5" fill="#8d8d8d"/><circle cx="88" cy="62" r="2" fill="#8d8d8d"/>
+      <ellipse cx="48" cy="60" rx="30" ry="26" fill="url(#kf1)" stroke="#959595" stroke-width="1"/>
+      <circle cx="28" cy="45" r="14" fill="#8d8d8d"/><circle cx="68" cy="45" r="14" fill="#8d8d8d"/>
+      <circle cx="28" cy="47" r="10" fill="#ffe6f0"/><circle cx="68" cy="47" r="10" fill="#ffe6f0"/>
+      <circle cx="40" cy="58" r="5" fill="#1a1a1a"/><circle cx="56" cy="58" r="5" fill="#1a1a1a"/>
+      <circle cx="42" cy="56" r="2" fill="#fff"/><circle cx="58" cy="56" r="2" fill="#fff"/>
+      <ellipse cx="48" cy="70" rx="9" ry="8" fill="#2d2d2d"/>
+      <ellipse cx="48" cy="71" rx="3" ry="2" fill="#ff99aa"/>
+      <path d="M42 74 Q48 78 54 74" stroke="#2d2d2d" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+      <ellipse cx="33" cy="65" rx="5" ry="3.5" fill="#ffb3ba" opacity="0.6"/>
+      <ellipse cx="63" cy="65" rx="5" ry="3.5" fill="#ffb3ba" opacity="0.6"/>
+    </svg>
+
+    <!-- Cloud bubble: tail on LEFT pointing at cheek, body extends RIGHT -->
+    <div class="cloud-bubble" id="cloudBubble1">
+      <svg viewBox="0 0 160 95" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="cloudGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#edf8ff"/>
+            <stop offset="100%" stop-color="#b6dcf7"/>
+          </linearGradient>
+        </defs>
+        <!--
+          Cloud shape: tail tip starts at left (x≈0), pointing left.
+          Body is a puffy cloud shape to the right.
+          The tail is a smooth pointed tongue from the bottom-left of the cloud body.
+        -->
+        <path d="
+          M 28 72
+          C 20 74  12 80  2 86
+          C 10 76  18 68  24 66
+          C 16 60  14 50  20 42
+          C 18 30  28 22  40 24
+          C 44 14  56 8   68 12
+          C 76 6   90 6   98 14
+          C 108 8  120 10 124 22
+          C 134 20 142 30 140 42
+          C 148 48 148 60 140 68
+          C 138 78 128 84 116 82
+          C 108 88 96  90 86  84
+          C 76  90 62  90 54  84
+          C 44  88 32  84 28  72 Z
+        "
+        fill="url(#cloudGrad)"
+        stroke="#7ec8e8"
+        stroke-width="2.2"
+        stroke-linejoin="round"
+        stroke-linecap="round"/>
+        <!-- Gloss shine -->
+        <path d="M 42 20 C 58 12 80 12 94 20"
+              stroke="rgba(255,255,255,0.82)" stroke-width="2.8"
+              fill="none" stroke-linecap="round"/>
+      </svg>
+      <div class="cloud-bubble-text">❤️ Click Me! ❤️</div>
+    </div>
+
+    <!-- Teddy wrap -->
+    <div class="teddy-wrap">
+      <div class="art-container">
+        <svg class="art" id="teddyArt1" viewBox="0 0 320 240" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="fur1" x1="0" x2="1"><stop offset="0" stop-color="#f7c7a1"/><stop offset="1" stop-color="#f2a97b"/></linearGradient>
+            <linearGradient id="heartDyn" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#ffb3c6"><animate attributeName="stop-color" values="#ffb3c6;#ff4d7d;#ffb3c6" dur="4s" repeatCount="indefinite"/></stop>
+              <stop offset="100%" stop-color="#ff1f68"><animate attributeName="stop-color" values="#ff6b9d;#ff1f68;#ff6b9d" dur="4s" repeatCount="indefinite"/></stop>
+            </linearGradient>
+            <linearGradient id="handG" x1="0" x2="1"><stop offset="0" stop-color="#f2a97b"/><stop offset="1" stop-color="#e89b6e"/></linearGradient>
+          </defs>
+          <path d="M90 120 C90 70 140 40 190 60 C240 40 290 70 290 120 C290 180 240 210 190 210 C140 210 90 180 90 120Z" fill="url(#fur1)"/>
+          <path d="M110 92 L95 55 L140 78 Z" fill="#f2a97b"/>
+          <path d="M270 92 L285 55 L240 78 Z" fill="#f2a97b"/>
+          <g id="leftHand" opacity="0">
+            <ellipse cx="130" cy="155" rx="20" ry="25" fill="url(#handG)" transform="rotate(-35 130 155)"/>
+            <ellipse cx="125" cy="142" rx="6" ry="9" fill="url(#handG)"/><ellipse cx="132" cy="140" rx="6" ry="9" fill="url(#handG)"/>
+            <ellipse cx="139" cy="142" rx="5.5" ry="8" fill="url(#handG)"/><ellipse cx="145" cy="145" rx="5" ry="7" fill="url(#handG)"/>
+          </g>
+          <g id="rightHand" opacity="0">
+            <ellipse cx="250" cy="155" rx="20" ry="25" fill="url(#handG)" transform="rotate(35 250 155)"/>
+            <ellipse cx="255" cy="142" rx="6" ry="9" fill="url(#handG)"/><ellipse cx="248" cy="140" rx="6" ry="9" fill="url(#handG)"/>
+            <ellipse cx="241" cy="142" rx="5.5" ry="8" fill="url(#handG)"/><ellipse cx="235" cy="145" rx="5" ry="7" fill="url(#handG)"/>
+          </g>
+          <g id="animatedHeart">
+            <path d="M120 65 C120 50 137 43 147 54 C157 43 174 50 174 65 C174 89 147 101 147 113 C147 101 120 89 120 65Z" fill="url(#heartDyn)"/>
+          </g>
+          <circle cx="160" cy="130" r="8"/><circle cx="220" cy="130" r="8"/>
+          <circle cx="163" cy="127" r="2.5" fill="white" opacity="0.8"/><circle cx="223" cy="127" r="2.5" fill="white" opacity="0.8"/>
+          <path d="M190 144 C186 144 182 148 182 152 C182 160 190 164 190 170 C190 164 198 160 198 152 C198 148 194 144 190 144Z" fill="#ff7aa2"/>
+        </svg>
+      </div>
+    </div>
+
+    <h1>Jessica 🌹, will you be my valentine?💖</h1>
+
+    <section class="button-zone" id="zone">
+      <button id="yesBtn">Yes</button>
+      <button id="noBtn">No</button>
+    </section>
+
+    <div class="hint" id="hint">"No" seems a bit shy 😈</div>
+
+    <section class="result" id="result">
+      <h2>YAY! 💃🎉</h2>
+      <img class="fireworks" src="https://media.giphy.com/media/g9582DNuQppxC/giphy.gif" alt="Celebration"/>
+    </section>
+  </div><!-- end card1 -->
+
+  <!-- Ghost card behind card2 -->
+  <div class="ghost-card" id="ghost3b" style="display:none;"></div>
+
+  <!-- ══════ CARD 2 ══════ -->
+  <div class="card" id="card2">
+
+    <!-- Koala -->
+    <svg class="koala-peek" viewBox="0 0 100 120">
+      <defs><radialGradient id="kf2"><stop offset="0%" stop-color="#c0c0c0"/><stop offset="100%" stop-color="#a8a8a8"/></radialGradient></defs>
+      <ellipse cx="88" cy="50" rx="10" ry="7" fill="url(#kf2)" transform="rotate(15 88 50)"/>
+      <circle cx="86" cy="46" r="2.5" fill="#8d8d8d"/><circle cx="90" cy="45" r="2.5" fill="#8d8d8d"/><circle cx="88" cy="42" r="2" fill="#8d8d8d"/>
+      <ellipse cx="88" cy="70" rx="10" ry="7" fill="url(#kf2)" transform="rotate(20 88 70)"/>
+      <circle cx="86" cy="66" r="2.5" fill="#8d8d8d"/><circle cx="90" cy="65" r="2.5" fill="#8d8d8d"/><circle cx="88" cy="62" r="2" fill="#8d8d8d"/>
+      <ellipse cx="48" cy="60" rx="30" ry="26" fill="url(#kf2)" stroke="#959595" stroke-width="1"/>
+      <circle cx="28" cy="45" r="14" fill="#8d8d8d"/><circle cx="68" cy="45" r="14" fill="#8d8d8d"/>
+      <circle cx="28" cy="47" r="10" fill="#ffe6f0"/><circle cx="68" cy="47" r="10" fill="#ffe6f0"/>
+      <circle cx="40" cy="58" r="5" fill="#1a1a1a"/><circle cx="56" cy="58" r="5" fill="#1a1a1a"/>
+      <circle cx="42" cy="56" r="2" fill="#fff"/><circle cx="58" cy="56" r="2" fill="#fff"/>
+      <ellipse cx="48" cy="70" rx="9" ry="8" fill="#2d2d2d"/>
+      <ellipse cx="48" cy="71" rx="3" ry="2" fill="#ff99aa"/>
+      <path d="M42 74 Q48 78 54 74" stroke="#2d2d2d" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+      <ellipse cx="33" cy="65" rx="5" ry="3.5" fill="#ffb3ba" opacity="0.6"/>
+      <ellipse cx="63" cy="65" rx="5" ry="3.5" fill="#ffb3ba" opacity="0.6"/>
+    </svg>
+
+    <!-- Teddy on card 2 — just floats, no click, no bubble -->
+    <div class="teddy-wrap">
+      <div class="art-container">
+        <svg class="art" id="teddyArt2" viewBox="0 0 320 240" xmlns="http://www.w3.org/2000/svg">
+          <defs><linearGradient id="fur2" x1="0" x2="1"><stop offset="0" stop-color="#f7c7a1"/><stop offset="1" stop-color="#f2a97b"/></linearGradient></defs>
+          <path d="M90 120 C90 70 140 40 190 60 C240 40 290 70 290 120 C290 180 240 210 190 210 C140 210 90 180 90 120Z" fill="url(#fur2)"/>
+          <path d="M110 92 L95 55 L140 78 Z" fill="#f2a97b"/>
+          <path d="M270 92 L285 55 L240 78 Z" fill="#f2a97b"/>
+          <circle cx="160" cy="130" r="8"/><circle cx="220" cy="130" r="8"/>
+          <circle cx="163" cy="127" r="2.5" fill="white" opacity="0.8"/><circle cx="223" cy="127" r="2.5" fill="white" opacity="0.8"/>
+          <path d="M190 144 C186 144 182 148 182 152 C182 160 190 164 190 170 C190 164 198 160 198 152 C198 148 194 144 190 144Z" fill="#ff7aa2"/>
+        </svg>
+      </div>
+    </div>
+
+    <img class="bouquet-img" src="https://assets.eflorist.com/site/EF-13299/56568100-blogImage-011224195936.png" alt="Bouquet of roses"/>
+
+    <!-- For You row with petal beside it -->
+    <div class="for-you-row">
+      <span class="for-you-text">For You 🌹</span>
+      <!-- Rose petal button — realistic fallen petal beside "For You" -->
+      <button class="petal-btn" id="petalBtn">
+        <svg class="petal-svg" viewBox="0 0 90 52" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <!-- Deep velvety rose gradient -->
+            <radialGradient id="pg" cx="35%" cy="28%" r="72%" fx="30%" fy="22%">
+              <stop offset="0%"   stop-color="#ffbccc"/>
+              <stop offset="22%"  stop-color="#f0405e"/>
+              <stop offset="55%"  stop-color="#c01840"/>
+              <stop offset="82%"  stop-color="#8e0a28"/>
+              <stop offset="100%" stop-color="#6b0020"/>
+            </radialGradient>
+            <!-- Edge shadow to give 3D curl -->
+            <radialGradient id="pgEdge" cx="80%" cy="75%" r="50%">
+              <stop offset="0%"   stop-color="#3d000e" stop-opacity="0.4"/>
+              <stop offset="100%" stop-color="#3d000e" stop-opacity="0"/>
+            </radialGradient>
+            <!-- Top highlight -->
+            <radialGradient id="pgHi" cx="30%" cy="20%" r="40%">
+              <stop offset="0%"   stop-color="#ffe0e8" stop-opacity="0.7"/>
+              <stop offset="100%" stop-color="#ffe0e8" stop-opacity="0"/>
+            </radialGradient>
+            <filter id="petalShadow">
+              <feDropShadow dx="2" dy="3" stdDeviation="3" flood-color="rgba(80,0,20,0.4)"/>
+            </filter>
+          </defs>
+          <!-- Main petal — organic asymmetric shape like a real fallen petal -->
+          <path d="M12 44 C4 38 2 27 5 16 C8 6 18 1 30 2 C42 3 58 6 70 13 C80 19 88 28 87 38 C86 45 79 50 70 50 C58 51 42 48 28 46 C22 45 16 46 12 44Z"
+                fill="url(#pg)" filter="url(#petalShadow)"/>
+          <!-- 3D curl shadow on right/bottom edge -->
+          <path d="M12 44 C4 38 2 27 5 16 C8 6 18 1 30 2 C42 3 58 6 70 13 C80 19 88 28 87 38 C86 45 79 50 70 50 C58 51 42 48 28 46 C22 45 16 46 12 44Z"
+                fill="url(#pgEdge)"/>
+          <!-- Central vein -->
+          <path d="M14 42 C28 34 52 22 84 36" stroke="rgba(100,0,22,0.25)" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+          <!-- Secondary veins -->
+          <path d="M25 38 C32 26 48 14 68 14" stroke="rgba(100,0,22,0.15)" stroke-width="0.9" fill="none" stroke-linecap="round"/>
+          <path d="M20 42 C28 38 40 36 56 40" stroke="rgba(100,0,22,0.12)" stroke-width="0.8" fill="none" stroke-linecap="round"/>
+          <path d="M32 36 C38 28 50 20 66 20" stroke="rgba(100,0,22,0.12)" stroke-width="0.7" fill="none" stroke-linecap="round"/>
+          <!-- Top highlight (dewy/silky sheen) -->
+          <path d="M18 8 C30 3 52 4 66 14 C52 2 26 2 18 8Z" fill="rgba(255,220,230,0.6)"/>
+          <path d="M10 22 C12 14 16 8 22 5" stroke="rgba(255,210,220,0.5)" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+          <!-- Subtle top highlight blob -->
+          <ellipse cx="30" cy="12" rx="14" ry="8" fill="url(#pgHi)" transform="rotate(-15 30 12)"/>
+          <!-- Tiny curled tip hint -->
+          <path d="M85 38 C88 34 89 28 87 22" stroke="rgba(60,0,15,0.3)" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+        </svg>
+        <span class="petal-label">✨ click<br>for more</span>
+      </button>
+    </div>
+  </div><!-- end card2 -->
+
+  <!-- ══════ CARD 3 ══════ -->
+  <div class="card" id="card3">
+
+    <!-- Koala -->
+    <svg class="koala-peek" viewBox="0 0 100 120">
+      <defs><radialGradient id="kf3"><stop offset="0%" stop-color="#c0c0c0"/><stop offset="100%" stop-color="#a8a8a8"/></radialGradient></defs>
+      <ellipse cx="88" cy="50" rx="10" ry="7" fill="url(#kf3)" transform="rotate(15 88 50)"/>
+      <circle cx="86" cy="46" r="2.5" fill="#8d8d8d"/><circle cx="90" cy="45" r="2.5" fill="#8d8d8d"/><circle cx="88" cy="42" r="2" fill="#8d8d8d"/>
+      <ellipse cx="88" cy="70" rx="10" ry="7" fill="url(#kf3)" transform="rotate(20 88 70)"/>
+      <circle cx="86" cy="66" r="2.5" fill="#8d8d8d"/><circle cx="90" cy="65" r="2.5" fill="#8d8d8d"/><circle cx="88" cy="62" r="2" fill="#8d8d8d"/>
+      <ellipse cx="48" cy="60" rx="30" ry="26" fill="url(#kf3)" stroke="#959595" stroke-width="1"/>
+      <circle cx="28" cy="45" r="14" fill="#8d8d8d"/><circle cx="68" cy="45" r="14" fill="#8d8d8d"/>
+      <circle cx="28" cy="47" r="10" fill="#ffe6f0"/><circle cx="68" cy="47" r="10" fill="#ffe6f0"/>
+      <circle cx="40" cy="58" r="5" fill="#1a1a1a"/><circle cx="56" cy="58" r="5" fill="#1a1a1a"/>
+      <circle cx="42" cy="56" r="2" fill="#fff"/><circle cx="58" cy="56" r="2" fill="#fff"/>
+      <ellipse cx="48" cy="70" rx="9" ry="8" fill="#2d2d2d"/>
+      <ellipse cx="48" cy="71" rx="3" ry="2" fill="#ff99aa"/>
+      <path d="M42 74 Q48 78 54 74" stroke="#2d2d2d" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+      <ellipse cx="33" cy="65" rx="5" ry="3.5" fill="#ffb3ba" opacity="0.6"/>
+      <ellipse cx="63" cy="65" rx="5" ry="3.5" fill="#ffb3ba" opacity="0.6"/>
+    </svg>
+
+    <!-- Teddy -->
+    <div class="art-container">
+      <svg class="art" viewBox="0 0 320 240" xmlns="http://www.w3.org/2000/svg">
+        <defs><linearGradient id="fur3" x1="0" x2="1"><stop offset="0" stop-color="#f7c7a1"/><stop offset="1" stop-color="#f2a97b"/></linearGradient></defs>
+        <path d="M90 120 C90 70 140 40 190 60 C240 40 290 70 290 120 C290 180 240 210 190 210 C140 210 90 180 90 120Z" fill="url(#fur3)"/>
+        <path d="M110 92 L95 55 L140 78 Z" fill="#f2a97b"/>
+        <path d="M270 92 L285 55 L240 78 Z" fill="#f2a97b"/>
+        <circle cx="160" cy="130" r="8"/><circle cx="220" cy="130" r="8"/>
+        <circle cx="163" cy="127" r="2.5" fill="white" opacity="0.8"/><circle cx="223" cy="127" r="2.5" fill="white" opacity="0.8"/>
+        <path d="M190 144 C186 144 182 148 182 152 C182 160 190 164 190 170 C190 164 198 160 198 152 C198 148 194 144 190 144Z" fill="#ff7aa2"/>
+      </svg>
+    </div>
+
+    <!-- Notebook love letter -->
+    <div class="notebook">
+      <!-- Hole punches -->
+      <div class="hole" style="top:20px;"></div>
+      <div class="hole" style="top:50%;transform:translateY(-50%);"></div>
+      <div class="hole" style="bottom:20px;"></div>
+      <div class="notebook-inner">
+        <div class="notebook-title">💌 A Letter From My Heart 💌</div>
+        <div class="notebook-body">Hey Jess,
+
+I know we don't really know each other that well yet, but talking to you became one of my favorite parts of the day without me even realizing it.
+
+Lately, I realized I started missing you more than I expected. Life's been a bit hectic for me, but our conversations felt easy and real, and I appreciated that more than I can explain.
+
+I know this might sound a little deep for two people who haven't even met yet, and I don't want to overthink this. So I'll just say it simply: I like you, and I'd love for us to go out on a date and get to know each other better. If that feels right to you, I'd really enjoy that. 💖
+
+</div>
+      </div>
+    </div>
+  </div><!-- end card3 -->
+
+</div><!-- end cards-wrapper -->
+
+<script>
+  /* ── GIF LOOP — runs forever, never stops ── */
+  const leftGif  = document.getElementById('leftGif');
+  const rightGif = document.getElementById('rightGif');
+  const L = 'https://i.pinimg.com/originals/91/25/fc/9125fcf5c30e8f30e70650e059e265be.gif';
+  const R = 'https://media.tenor.com/4bV9ylEOWpgAAAAi/bubu-dudu-sseeyall.gif';
+  // Both GIFs loop forever — never stop
+  setInterval(()=>{
+    const t='?t='+Date.now();
+    leftGif.src=L+t; rightGif.src=R+t;
+  },1750);
+
+  /* ── CONFETTI ── */
+  const cc = document.getElementById('confettiCanvas');
+  function resizeCC(){const d=Math.max(1,window.devicePixelRatio||1);cc.width=Math.floor(window.innerWidth*d);cc.height=Math.floor(window.innerHeight*d);cc.style.width='100vw';cc.style.height='100vh';}
+  resizeCC(); window.addEventListener('resize',resizeCC);
+  const myConfetti=confetti.create(cc,{resize:false,useWorker:true});
+  function fireConfetti(){
+    const end=Date.now()+1600;
+    (function f(){myConfetti({particleCount:12,spread:90,startVelocity:45,ticks:180,origin:{x:Math.random(),y:Math.random()*0.3}});if(Date.now()<end)requestAnimationFrame(f);})();
+    setTimeout(()=>myConfetti({particleCount:300,spread:140,startVelocity:60,ticks:220,origin:{x:0.5,y:0.55}}),300);
+  }
+
+  /* ── NO BUTTON ── */
+  const zone=document.getElementById('zone');
+  const yesBtn=document.getElementById('yesBtn');
+  const noBtn=document.getElementById('noBtn');
+  const hint=document.getElementById('hint');
+  const result=document.getElementById('result');
+  let mouseX,mouseY,yesScale=1;
+
+  function clamp(n,lo,hi){return Math.max(lo,Math.min(hi,n));}
+  function moveNo(px,py){
+    const z=zone.getBoundingClientRect(),b=noBtn.getBoundingClientRect();
+    let dx=(b.left+b.width/2)-px, dy=(b.top+b.height/2)-py;
+    const m=Math.hypot(dx,dy)||1; dx/=m; dy/=m;
+    noBtn.style.left=clamp((b.left-z.left)+dx*160,0,z.width-b.width)+'px';
+    noBtn.style.top=clamp((b.top-z.top)+dy*160,0,z.height-b.height)+'px';
+    noBtn.style.transform='none';
+    yesScale=Math.min(2.2,yesScale+0.1);
+    yesBtn.style.transform=`translateY(-50%) scale(${yesScale})`;
+  }
+
+  document.addEventListener('mousemove',e=>{mouseX=e.clientX;mouseY=e.clientY;});
+  document.addEventListener('pointermove',e=>{mouseX=e.clientX;mouseY=e.clientY;});
+  document.addEventListener('touchmove',e=>{if(e.touches[0]){mouseX=e.touches[0].clientX;mouseY=e.touches[0].clientY;}},{passive:true});
+
+  setInterval(()=>{
+    if(mouseX===undefined)return;
+    const b=noBtn.getBoundingClientRect();
+    if(Math.hypot((b.left+b.width/2)-mouseX,(b.top+b.height/2)-mouseY)<180)moveNo(mouseX,mouseY);
+  },16);
+
+  ['mouseenter','mouseover','mousemove','pointerenter','pointermove','pointerover'].forEach(ev=>{
+    noBtn.addEventListener(ev,e=>moveNo(e.clientX,e.clientY),{passive:true});
+  });
+  ['click','pointerdown','touchstart','mousedown'].forEach(ev=>{
+    noBtn.addEventListener(ev,e=>{
+      e.preventDefault();e.stopPropagation();
+      moveNo(e.touches?e.touches[0].clientX:e.clientX, e.touches?e.touches[0].clientY:e.clientY);
+    },{passive:false});
+  });
+
+  /* ── YES CLICK ── */
+  yesBtn.addEventListener('click',()=>{
+    // GIFs keep running forever — do NOT stop them
+
+    const animatedHeart=document.getElementById('animatedHeart');
+    const leftHand=document.getElementById('leftHand');
+    const rightHand=document.getElementById('rightHand');
+    animatedHeart.style.animation='none';
+    leftHand.style.animation='none'; rightHand.style.animation='none';
+    leftHand.style.opacity='0'; rightHand.style.opacity='0';
+
+    const artEl=document.getElementById('teddyArt1');
+    const cardEl=document.getElementById('card1');
+    const artContainer=document.querySelector('#card1 .art-container');
+    artEl.style.animation='none';
+    setTimeout(()=>artEl.classList.add('blowing-kisses'),10);
+
+    function spawnKiss(){
+      const k=document.createElement('div'); k.className='kiss-particle';
+      k.textContent=['💋','❤️','💕','💖'][Math.floor(Math.random()*4)];
+      const ar=artContainer.getBoundingClientRect(), cr=cardEl.getBoundingClientRect();
+      k.style.left=(ar.left-cr.left+ar.width/2)+'px';
+      k.style.top=(ar.top-cr.top+ar.height*0.65)+'px';
+      const angle=Math.random()*Math.PI*2, dist=100+Math.random()*100;
+      k.style.setProperty('--tx',Math.cos(angle)*dist+'px');
+      k.style.setProperty('--ty',Math.sin(angle)*dist+'px');
+      cardEl.appendChild(k); setTimeout(()=>k.remove(),2000);
+    }
+    const ki=setInterval(spawnKiss,300);
+    setTimeout(()=>{clearInterval(ki);artEl.classList.remove('blowing-kisses');},3000);
+
+    zone.style.display='none'; hint.style.display='none'; result.style.display='block';
+    resizeCC(); fireConfetti();
+
+    /* Show cloud bubble + make teddy clickable after 3.5s */
+    setTimeout(()=>{
+      document.getElementById('cloudBubble1').style.display='block';
+      artEl.classList.add('clickable');
+      artEl.addEventListener('click',goToCard2,{once:true});
+    },3500);
+  });
+
+  /* ── CARD 1 → CARD 2 ── */
+  function goToCard2(){
+    document.getElementById('cloudBubble1').style.display='none';
+    const c1=document.getElementById('card1');
+    const g2=document.getElementById('ghost2');
+    const g3=document.getElementById('ghost3');
+    c1.classList.add('card-fall');
+    setTimeout(()=>{
+      c1.style.display='none'; c1.classList.remove('card-fall');
+      g2.style.display='none'; g3.style.display='none';
+      document.getElementById('ghost3b').style.display='block';
+      const c2=document.getElementById('card2');
+      c2.style.display='block';
+      c2.classList.add('card-appear');
+      setTimeout(()=>c2.classList.remove('card-appear'),600);
+      // Only petal triggers card3 — no cloud, no clickable teddy on card2
+      setTimeout(()=>{
+        const pb = document.getElementById('petalBtn');
+        pb.classList.add('show');
+        setTimeout(()=>pb.classList.add('settled'), 950);
+      },2200);
+    },850);
+  }
+
+  /* ── CARD 2 → CARD 3 ── */
+  function goToCard3(){
+    const c2=document.getElementById('card2');
+    document.getElementById('ghost3b').style.display='none';
+    c2.classList.add('card-fall');
+    setTimeout(()=>{
+      c2.style.display='none'; c2.classList.remove('card-fall');
+      const c3=document.getElementById('card3');
+      c3.style.display='block';
+      c3.classList.add('card-appear');
+      setTimeout(()=>c3.classList.remove('card-appear'),600);
+    },850);
+  }
+
+  /* Petal button also triggers goToCard3 */
+  document.getElementById('petalBtn').addEventListener('click',()=>{
+    if(document.getElementById('card2').style.display!=='none') goToCard3();
+  });
+</script>
+</body>
+</html>
